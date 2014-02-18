@@ -849,6 +849,7 @@ class DynamixelIO(object):
             self.exception_on_error(response[4], servo_id, 'fetching full servo status')
         if len(response) == 24:
             # extract data values from the raw data
+            flags = response[4]
             goal = response[5] + (response[6] << 8)
             position = response[11] + (response[12] << 8)
             error = position - goal
@@ -866,6 +867,7 @@ class DynamixelIO(object):
             # return the data in a dictionary
             return { 'timestamp': timestamp,
                      'id': servo_id,
+                     'flags': flags,
                      'goal': goal,
                      'position': position,
                      'error': error,
