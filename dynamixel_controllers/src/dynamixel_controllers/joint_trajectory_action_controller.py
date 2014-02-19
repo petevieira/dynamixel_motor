@@ -54,6 +54,7 @@ from control_msgs.msg import FollowJointTrajectoryAction
 from control_msgs.msg import FollowJointTrajectoryFeedback
 from control_msgs.msg import FollowJointTrajectoryResult
 
+from dynamixel_controllers.joint_trajectory_converter import TrajectoryConverter
 
 class Segment():
     def __init__(self, num_joints):
@@ -67,6 +68,8 @@ class JointTrajectoryActionController():
         self.update_rate = 1000
         self.state_update_rate = 50
         self.trajectory = []
+
+        self.has_converter = False
         
         self.controller_namespace = controller_namespace
         self.joint_names = [c.joint_name for c in controllers]
@@ -114,6 +117,9 @@ class JointTrajectoryActionController():
         
         return True
 
+    def set_converter(self, converter):
+        self.has_converter = True
+        self.converter = converter
 
     def start(self):
         self.running = True
@@ -142,12 +148,17 @@ class JointTrajectoryActionController():
         self.process_trajectory(goal.trajectory)
 
     def process_trajectory(self, traj):
+        # Optionally convert from URDF convention to Dynamixel Convention
+        if self.has_converter:
+            traj = self.converter.convert_trajectory(traj)
+
         num_points = len(traj.points)
         
         # make sure the joints in the goal match the joints of the controller
         if set(self.joint_names) != set(traj.joint_names):
             res = FollowJointTrajectoryResult(FollowJointTrajectoryResult.INVALID_JOINTS)
-            msg = 'Incoming trajectory joints do not match the joints of the controller'
+            msg = 'Incoming trajectory joints do not match the joints of the controller:\n'
+            msg = msg + "Expected: " + str(self.joint_names) + "\nReceived: "+ str(traj.joint_names)
             rospy.logerr(msg)
             self.action_server.set_aborted(result=res, text=msg)
             return
