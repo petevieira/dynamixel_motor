@@ -52,14 +52,14 @@ class TrajectoryManager:
 
         self.converter = TrajectoryConverter()
         for c_name in controller_names:
-            if "-1" == rospy.get_param(c_name + "/motor_master", "-1"):
-                self.controllers[c_name] = JointPositionController(self.serial_proxy.dxl_io, c_name, 'arbotix_port')
+            if "-1" == rospy.get_param(root_path + c_name + "/motor_master", "-1"):
+                self.controllers[c_name] = JointPositionController(self.serial_proxy.dxl_io, root_path + c_name, 'arbotix_port')
             else:
-                self.controllers[c_name] = JointPositionControllerDual(self.serial_proxy.dxl_io, c_name, 'arbotix_port')
+                self.controllers[c_name] = JointPositionControllerDual(self.serial_proxy.dxl_io, root_path + c_name, 'arbotix_port')
 
-            dyn_name = rospy.get_param(c_name + "/joint_name", "")
-            reverse = rospy.get_param(c_name + "/reverse", False)
-            offset = rospy.get_param(c_name + "/offset", 0)
+            dyn_name = rospy.get_param(root_path + c_name + "/joint_name", "")
+            reverse = rospy.get_param(root_path + c_name + "/reverse", False)
+            offset = rospy.get_param(root_path + c_name + "/offset", 0)
 
             self.converter.add_joint(dyn_name, dyn_name, reverse, offset)
 
@@ -84,7 +84,11 @@ class TrajectoryManager:
 
 if __name__ == '__main__':
     try:
-        manager = TrajectoryManager(rospy.myargv()[1:])  # Args are names of controllers to employ
+        root_path = rospy.myargv()[1] + "/"
+        controller_list = rospy.get_param(root_path)
+        for c_name in controller_list:
+            print(c_name)
+        manager = TrajectoryManager(controller_list)  # Args are names of controllers to employ
 
         rospy.spin()
     except rospy.ROSInterruptException: pass
