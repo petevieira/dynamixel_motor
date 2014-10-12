@@ -53,6 +53,8 @@ from dynamixel_msgs.msg import JointState
 
 class JointPositionController(JointController):
     def __init__(self, dxl_io, controller_namespace, port_namespace):
+        """Sets up a motors parameters such as ID, joint limits, etc.
+        """
         JointController.__init__(self, dxl_io, controller_namespace, port_namespace)
         
         self.motor_id = rospy.get_param(self.controller_namespace + '/motor/id')
@@ -66,6 +68,7 @@ class JointPositionController(JointController):
 
     def initialize(self):
         # verify that the expected motor is connected and responding
+        print 'port namesapace: ' + self.port_namespace
         available_ids = rospy.get_param('dynamixel/%s/connected_ids' % self.port_namespace, [])
         if not self.motor_id in available_ids:
             rospy.logwarn('The specified motor id is not connected and responding.')

@@ -20,8 +20,8 @@ class TrajectoryManager:
         rospy.init_node('trajectory_controller', anonymous=True)
         rospy.on_shutdown(self.on_shutdown)
 
-        self.controllers = {}
-        self.serial_proxies = {}
+        self.controllers = {}    # Joint Position Controllers
+        self.serial_proxies = {} # Serial ports
         self.diagnostics_rate = rospy.get_param('~diagnostics_rate', 1)
 
         # Load ROS parameters for serial port
@@ -50,12 +50,16 @@ class TrajectoryManager:
                                             warn_level_temp)
             self.serial_proxy.connect()
 
+        # Add each joint controller to the trajectory controller by getting all
+        # the joint parameters and then adding the joints
         self.converter = TrajectoryConverter()
         for c_name in controller_names:
+            # if "motor_master" tag is found in the joint params, use the dual
+            # contoller, otherwise use the single joint controller
             if "-1" == rospy.get_param(root_path + c_name + "/motor_master", "-1"):
-                self.controllers[c_name] = JointPositionController(self.serial_proxy.dxl_io, root_path + c_name, 'arbotix_port')
+                self.controllers[c_name] = JointPositionController(self.serial_proxy.dxl_io, root_path + c_name, 'arm_port')
             else:
-                self.controllers[c_name] = JointPositionControllerDual(self.serial_proxy.dxl_io, root_path + c_name, 'arbotix_port')
+                self.controllers[c_name] = JointPositionControllerDual(self.serial_proxy.dxl_io, root_path + c_name, 'arm_port')
 
             dyn_name = rospy.get_param(root_path + c_name + "/joint_name", "")
             reverse = rospy.get_param(root_path + c_name + "/reverse", False)
@@ -63,6 +67,7 @@ class TrajectoryManager:
 
             self.converter.add_joint(dyn_name, dyn_name, reverse, offset)
 
+        # Print the type of joint position controller and intialize it
         for c in self.controllers.values():
             if isinstance(c, JointPositionControllerDual):
                 print(c.controller_namespace, "Dual")
